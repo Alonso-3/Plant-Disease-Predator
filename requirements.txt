@@ -1,0 +1,11 @@
+streamlit
+numpy==1.26.4
+Pillow==10.2.0
+tensorflow
+opencv-python-headless
+google-generativeai
+fpdf
+gdown
+grpcio==1.59.3
+protobuf==4.25.3
+pydantic<2
