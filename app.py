@@ -41,7 +41,7 @@ CLASS_NAMES = [
 @st.cache_resource
 def load_trained_model():
     if not os.path.exists(MODEL_PATH):
-        st.info("📥 Downloading model (first run only)...")
+        st.info("📥 Downloading model ")
         gdown.download(
             url=MODEL_URL,
             output=MODEL_PATH,
@@ -106,3 +106,4 @@ elif page == "Disease Recognition":
                 result = CLASS_NAMES[result_index]
 
             st.success(f"🧪 **Prediction:** {result}")
+
