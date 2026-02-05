@@ -1,7 +1,6 @@
 import streamlit as st
 import tensorflow as tf
 import numpy as np
-import cv2
 import os
 import gdown
 from PIL import Image
@@ -11,37 +10,9 @@ IMG_SIZE = 224
 BASE_DIR = os.path.dirname(__file__)
 
 MODEL_PATH = os.path.join(BASE_DIR, "plant_disease_detection.h5")
-
-# 🔴 REPLACE THIS WITH YOUR REAL GOOGLE DRIVE FILE ID
 MODEL_URL = "https://drive.google.com/uc?id=13yI7LGK36ZlQoxmV4lplSViJvb3Mw1rv"
 
-
 ASSET_IMAGE = os.path.join(BASE_DIR, "assets", "Disease.png")
-
-# ------------------ LOAD MODEL (ONCE) ------------------
-@st.cache_resource
-def load_model():
-    if not os.path.exists(MODEL_PATH):
-        st.info("📥 Downloading model (first time only)...")
-        gdown.download(
-            url=MODEL_URL,
-            output=MODEL_PATH,
-            quiet=False,
-            fuzzy=True
-        )
-    return tf.keras.models.load_model(MODEL_PATH)
-
-
-# ------------------ PREDICTION FUNCTION ------------------
-def predict_disease(image_path):
-    img = cv2.imread(image_path)
-    img = cv2.resize(img, (IMG_SIZE, IMG_SIZE))
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    img = img.astype("float32") / 255.0
-    img = np.expand_dims(img, axis=0)
-
-    prediction = model.predict(img)
-    return np.argmax(prediction, axis=1)[0]
 
 # ------------------ CLASS LABELS ------------------
 CLASS_NAMES = [
@@ -65,6 +36,33 @@ CLASS_NAMES = [
     'Tomato___Target_Spot', 'Tomato___Tomato_Yellow_Leaf_Curl_Virus',
     'Tomato___Tomato_mosaic_virus', 'Tomato___healthy'
 ]
+
+# ------------------ LOAD MODEL (ONCE) ------------------
+@st.cache_resource
+def load_trained_model():
+    if not os.path.exists(MODEL_PATH):
+        st.info("📥 Downloading model (first run only)...")
+        gdown.download(
+            url=MODEL_URL,
+            output=MODEL_PATH,
+            quiet=False,
+            fuzzy=True
+        )
+    return tf.keras.models.load_model(MODEL_PATH)
+
+# ✅ CRITICAL LINE (THIS WAS MISSING)
+model = load_trained_model()
+
+# ------------------ PREDICTION FUNCTION ------------------
+def predict_disease(image: Image.Image):
+    image = image.convert("RGB")
+    image = image.resize((IMG_SIZE, IMG_SIZE))
+
+    img_array = np.array(image, dtype=np.float32) / 255.0
+    img_array = np.expand_dims(img_array, axis=0)
+
+    prediction = model.predict(img_array)
+    return np.argmax(prediction, axis=1)[0]
 
 # ------------------ STREAMLIT UI ------------------
 st.set_page_config(page_title="Plant Disease Detection", layout="wide")
@@ -98,16 +96,13 @@ elif page == "Disease Recognition":
     )
 
     if uploaded_file is not None:
-        image_path = os.path.join(BASE_DIR, uploaded_file.name)
+        image = Image.open(uploaded_file)
 
-        with open(image_path, "wb") as f:
-            f.write(uploaded_file.getbuffer())
-
-        st.image(uploaded_file, caption="Uploaded Image", use_container_width=True)
+        st.image(image, caption="Uploaded Image", use_container_width=True)
 
         if st.button("🔍 Predict Disease"):
             with st.spinner("Analyzing image..."):
-                result_index = predict_disease(image_path)
+                result_index = predict_disease(image)
                 result = CLASS_NAMES[result_index]
 
             st.success(f"🧪 **Prediction:** {result}")
